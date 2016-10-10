@@ -52,10 +52,12 @@ class learner:
         G = matrix(G, tc = 'd')
         h = matrix(h, tc = 'd')
 
-        alpha = solvers.qp(P = P, q = q, G = G, h = h, A = A, b = b)['x']
+        solvers.options['show_progress'] = False
+        alpha = solvers.qp(P = P, q = q, G = G, h = h, A = A, b = b, )['x']
 
         self.beta = (alpha * self.Y).T[0]
         self.set_supports()
+        return {'P' : P, 'q' : q, 'A' : A, 'b' : b, 'G' : G, 'h' : h}
 
     def set_supports(self):
 
@@ -81,7 +83,15 @@ class learner:
         self.bias   = -(np.min(preds[self.Y.T[0] == 1]) + np.max(preds[self.Y.T[0] == -1])) / 2.0
 
     def training_error(self):
+        return self.test_error(self.X, self.Y)
 
-        classifier          = np.vectorize(lambda i: self.classify(self.X[i]))
-        pred_classes        = classifier(np.arange(self.X.shape[0]))
-        return np.mean(np.abs(self.Y.T[0] - pred_classes) > 0)
+    def test_error(self, X_test, Y_test):
+        classifier = np.vectorize(lambda i: self.classify(X_test[i]))
+        pred_classes = classifier(np.arange(Y_test.shape[0]))
+        return np.mean(np.abs(Y_test.T[0] - pred_classes) > 0)
+
+    def get_margin(self):
+        return 1.0 / np.dot(self.beta, self.beta)
+
+    def get_supports(self):
+        return self.support_vectors
