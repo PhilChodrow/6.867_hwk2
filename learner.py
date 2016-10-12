@@ -13,6 +13,7 @@ class learner:
         self.support_vectors = None
         self.support_betas   = None
         self.bias            = 0
+        self.w               = 0 
 
     def set_data(self,X,Y):
 
@@ -59,34 +60,38 @@ class learner:
         self.set_supports()
         return {'P' : P, 'q' : q, 'A' : A, 'b' : b, 'G' : G, 'h' : h}
 
-    def set_supports(self):
+    def set_supports(self, kind = 'kernel'):
 
         supports = np.abs(self.beta) > 0.0000001
         self.support_vectors = self.X[supports,:]
         self.support_betas   = self.beta.T[supports]
-        self.set_bias()
+        self.set_bias(kind)
 
-    def predict(self, x):
+    def predict(self, x, kind = 'kernel'):
+ 
+        if(kind == 'kernel'):
+            f = np.vectorize(lambda i: self.kernel_func(x, self.support_vectors[i]))
+            return np.dot(self.support_betas,
+                          f(np.arange(self.support_vectors.shape[0]))) + self.bias
+        elif(kind == 'pegasos'):
+            return np.dot(x, self.w) + self.bias
 
-        f = np.vectorize(lambda i: self.kernel_func(x, self.support_vectors[i]))
-        return np.dot(self.support_betas,
-                      f(np.arange(self.support_vectors.shape[0]))) + self.bias
 
-    def classify(self, x):
-        return np.sign(self.predict(x))
+    def classify(self, x, kind = 'kernel'):
+        return np.sign(self.predict(x, kind))
 
-    def set_bias(self):
+    def set_bias(self, kind = 'kernel'):
         # http://cs229.stanford.edu/notes/cs229-notes3.pdf
 
-        predictor   = np.vectorize(lambda i: self.predict(self.X[i]))
+        predictor   = np.vectorize(lambda i: self.predict(self.X[i], kind))
         preds = predictor(np.arange(self.X.shape[0]))
         self.bias   = -(np.min(preds[self.Y.T[0] == 1]) + np.max(preds[self.Y.T[0] == -1])) / 2.0
 
-    def training_error(self):
-        return self.test_error(self.X, self.Y)
+    def training_error(self, kind = 'kernel'):
+        return self.test_error(self.X, self.Y, kind)
 
-    def test_error(self, X_test, Y_test):
-        classifier = np.vectorize(lambda i: self.classify(X_test[i]))
+    def test_error(self, X_test, Y_test, kind = 'kernel'):
+        classifier = np.vectorize(lambda i: self.classify(X_test[i], kind))
         pred_classes = classifier(np.arange(Y_test.shape[0]))
         return np.mean(np.abs(Y_test.T[0] - pred_classes) > 0)
 
@@ -95,3 +100,19 @@ class learner:
 
     def get_supports(self):
         return self.support_vectors
+
+    def train_pegasos_linear(self, gamma, max_epochs):
+        t    = 0
+        w = np.zeros(self.X.shape[1])
+
+        for j in range(max_epochs):
+            for i in range(self.X.shape[0]):
+                t += 1
+                eta = 1.0 / (t*gamma)
+                first_term = (1 - eta * gamma) * w
+                if self.Y[i] * (np.dot(w, self.X[i])) < 1:
+                    w = first_term + eta * self.Y[i]*self.X[i]
+                else:
+                    w = first_term
+        self.w = w
+        self.set_bias(kind = 'pegasos')
