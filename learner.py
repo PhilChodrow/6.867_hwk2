@@ -116,3 +116,18 @@ class learner:
                     w = first_term
         self.w = w
         self.set_bias(kind = 'pegasos')
+
+    def train_pegasos_kernelized(self, gamma, max_epochs):
+        t = 0
+        beta = np.zeros(self.X.shape[0])
+        for j in range(max_epochs):
+            for i in range(self.X.shape[0]):
+                t += 1
+                eta = 1.0 / (t*gamma)
+                first_term = (1-eta * gamma) * beta[i]
+                if(self.Y[i] * np.dot(beta, self.K[i]) < 1.0):
+                    beta[i] = first_term + eta * self.Y[i]
+                else:
+                    beta[i] = first_term
+        self.beta = beta
+        self.set_supports(kind = 'kernel')
