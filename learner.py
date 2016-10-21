@@ -117,6 +117,7 @@ class learner:
                     w = first_term
         self.w = w
         self.set_bias(kind = 'pegasos')
+        # self.set_supports(kind = 'pegasos')
 
     def train_pegasos_kernelized(self, gamma, max_epochs):
         t = 0
