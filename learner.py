@@ -58,11 +58,12 @@ class learner:
 
         self.beta = (alpha * self.Y).T[0]
         self.set_supports()
+        self.w = np.dot(self.beta, self.X)
         return {'P' : P, 'q' : q, 'A' : A, 'b' : b, 'G' : G, 'h' : h}
 
     def set_supports(self, kind = 'kernel'):
 
-        supports = np.abs(self.beta) > 0.0000001
+        supports = np.abs(self.beta) > 0.001
         self.support_vectors = self.X[supports,:]
         self.support_betas   = self.beta.T[supports]
         self.set_bias(kind)
@@ -96,7 +97,7 @@ class learner:
         return np.mean(np.abs(Y_test.T[0] - pred_classes) > 0)
 
     def get_margin(self):
-        return 1.0 / np.dot(self.beta, self.beta)
+        return 1.0 / np.dot(self.w, self.w)
 
     def get_supports(self):
         return self.support_vectors
@@ -106,7 +107,7 @@ class learner:
         w = np.zeros(self.X.shape[1])
 
         for j in range(max_epochs):
-            for i in range(self.X.shape[0]):
+            for i in np.random.permutation(np.arange(self.X.shape[0])):
                 t += 1
                 eta = 1.0 / (t*gamma)
                 first_term = (1 - eta * gamma) * w
@@ -121,7 +122,7 @@ class learner:
         t = 0
         beta = np.zeros(self.X.shape[0])
         for j in range(max_epochs):
-            for i in range(self.X.shape[0]):
+            for i in np.random.permutation(np.arange(self.X.shape[0])):
                 t += 1
                 eta = 1.0 / (t*gamma)
                 first_term = (1-eta * gamma) * beta[i]
@@ -130,4 +131,5 @@ class learner:
                 else:
                     beta[i] = first_term
         self.beta = beta
+        self.w = np.dot(self.beta, self.X)
         self.set_supports(kind = 'kernel')
