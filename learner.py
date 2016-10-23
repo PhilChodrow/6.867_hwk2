@@ -1,5 +1,6 @@
 import numpy as np
 from cvxopt import solvers, matrix
+from sklearn.metrics.pairwise import pairwise_kernels
 
 class learner:
 
@@ -9,7 +10,7 @@ class learner:
         self.X               = None
         self.Y               = None
         self.K               = None
-        self.kernel_func     = None
+        self.kernel_type     = None
         self.support_vectors = None
         self.support_betas   = None
         self.bias            = 0
@@ -20,15 +21,11 @@ class learner:
         self.X = X
         self.Y = Y
 
-    def set_kernel_function(self, kernel_func):
-        self.kernel_func = kernel_func
+    def set_kernel(self, kernel_type = 'linear'):
+    	self.kernel_type = kernel_type
 
-    def make_kernel_matrix(self,  **kwargs):
-        self.K = np.fromfunction(np.vectorize(
-            lambda i, j: self.kernel_func(self.X[i],
-                                          self.X[j]), **kwargs),
-                        (self.X.shape[0], self.X.shape[0]),
-                        dtype='int64')
+    def make_kernel_matrix(self, **kwargs):
+    	self.K = pairwise_kernels(self.X, metric = self.kernel_type, **kwargs)
 
     def make_gram_matrix(self):
         return np.dot(self.Y, self.Y.T) * self.K
@@ -65,34 +62,32 @@ class learner:
 
         supports = np.abs(self.beta) > 0.001
         self.support_vectors = self.X[supports,:]
-        self.support_betas   = self.beta.T[supports]
+        self.support_betas   = self.beta.T[supports].reshape(-1, 1)
         self.set_bias(kind)
 
-    def predict(self, x, kind = 'kernel'):
- 
+    def predict(self, x, kind = 'kernel', **kwargs):
+ 		
         if(kind == 'kernel'):
-            f = np.vectorize(lambda i: self.kernel_func(x, self.support_vectors[i]))
-            return np.dot(self.support_betas,
-                          f(np.arange(self.support_vectors.shape[0]))) + self.bias
+        	kerns = pairwise_kernels(x.T, self.support_vectors, metric = self.kernel_type, **kwargs)
+        	return np.dot(self.support_betas.T, kerns.T) + self.bias
         elif(kind == 'pegasos'):
-            return np.dot(x, self.w) + self.bias
-
+        	return np.dot(x.T, self.w) + self.bias
 
     def classify(self, x, kind = 'kernel'):
         return np.sign(self.predict(x, kind))
 
     def set_bias(self, kind = 'kernel'):
         # http://cs229.stanford.edu/notes/cs229-notes3.pdf
-
-        predictor   = np.vectorize(lambda i: self.predict(self.X[i], kind))
-        preds = predictor(np.arange(self.X.shape[0]))
-        self.bias   = -(np.min(preds[self.Y.T[0] == 1]) + np.max(preds[self.Y.T[0] == -1])) / 2.0
+		
+		predictor   = np.vectorize(lambda i: self.predict(self.X[[i]].T, kind = kind))
+		preds       = predictor(np.arange(self.X.shape[0]))
+		self.bias   = -(np.min(preds[self.Y.T[0] == 1]) + np.max(preds[self.Y.T[0] == -1])) / 2.0
 
     def training_error(self, kind = 'kernel'):
         return self.test_error(self.X, self.Y, kind)
 
     def test_error(self, X_test, Y_test, kind = 'kernel'):
-        classifier = np.vectorize(lambda i: self.classify(X_test[i], kind))
+        classifier = np.vectorize(lambda i: self.classify(X_test[[i]].T, kind = kind))
         pred_classes = classifier(np.arange(Y_test.shape[0]))
         return np.mean(np.abs(Y_test.T[0] - pred_classes) > 0)
 
