@@ -72,3 +72,9 @@ def sigmoid(a):
 
 def predict(w,x):
     return np.sign(np.dot(np.array(w).T,np.array(x)))
+
+def gaussian_kernel(x, y, s = 1):
+    return math.exp(-(np.linalg.norm(x - y))**2 / (s**2))
+
+def linear_kernel(x,y):
+    return np.dot(x,y)
