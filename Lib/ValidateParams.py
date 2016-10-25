@@ -9,8 +9,9 @@ def Validate(DataSetXTrain, DataSetYTrain, DataSetXVal, DataSetYVal,Lamdas,Rgula
     BestLambda = 0
     for Lambda in Lamdas:
         Inter,W,RSQ = RgularizedFunction(DataSetXTrain, DataSetYTrain, DataSetXVal, DataSetYVal, Lambda)
+        print "Lambda:",Lambda,"RSQ:", RSQ
         if RSQ < BestRSQ:
             BestLambda = Lambda
             BestRSQ = RSQ
     Inter, W, RSQ = RgularizedFunction(DataSetXTrain, DataSetYTrain, DataSetXVal, DataSetYVal, BestLambda)
-    return Inter, W, BestLambda
+    return Inter, W, BestLambda,RSQ

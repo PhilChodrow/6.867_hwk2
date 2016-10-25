@@ -63,11 +63,8 @@ def GradientRegularizedNLL(W,X,Y,Lambda):
 
 
 def sigmoid(a):
+    #print a
     sig= 1/(1+math.exp(-a))
-    if sig == 1:
-        return 0.999999
-    if sig == 0:
-        return 0.000001
     return sig
 
 def predict(w,x):
