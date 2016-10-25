@@ -15,6 +15,10 @@ class learner:
         self.support_betas   = None
         self.bias            = 0
         self.w               = 0 
+        self.sparsity_threshold = .001
+
+    def set_sparsity_threshold(self, threshold):
+        self.sparsity_threshold = threshold
 
     def set_data(self,X,Y):
 
@@ -60,7 +64,7 @@ class learner:
 
     def set_supports(self, kind = 'kernel'):
 
-        supports = np.abs(self.beta) > 0.001
+        supports = np.abs(self.beta) > self.sparsity_threshold
         self.support_vectors = self.X[supports,:]
         self.support_betas   = self.beta.T[supports].reshape(-1, 1)
         self.set_bias(kind)
@@ -73,8 +77,8 @@ class learner:
         elif(kind == 'pegasos'):
         	return np.dot(x.T, self.w) + self.bias
 
-    def classify(self, x, kind = 'kernel'):
-        return np.sign(self.predict(x, kind))
+    def classify(self, x, kind = 'kernel', **kwargs):
+        return np.sign(self.predict(x, kind, **kwargs))
 
     def set_bias(self, kind = 'kernel'):
         # http://cs229.stanford.edu/notes/cs229-notes3.pdf
